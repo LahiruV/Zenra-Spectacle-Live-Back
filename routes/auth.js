@@ -4,7 +4,6 @@ const bcrypt = require('bcryptjs');
 const nodemailer = require('nodemailer');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
-const auth = require('../middleware/auth');
 
 // Register route
 router.post('/register', async (req, res) => {
@@ -75,16 +74,6 @@ router.post('/login', async (req, res) => {
   }
 });
 
-router.get('/me', auth, async (req, res) => {
-  try {
-    const user = await User.findById(req.user.id).select('-password');
-    res.json(user);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
-  }
-});
-
 router.post('/mailSend', async (req, res) => {
   const { email } = req.body;
   try {
@@ -125,77 +114,6 @@ router.post('/mailSend', async (req, res) => {
         res.status(200).json({ msg: 'Verification code sent to email.', code });
       }
     });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
-  }
-});
-
-router.get('/users', auth, async (req, res) => {
-  try {
-    const users = await User.find().select('-password'); // Exclude password field
-    res.json(users);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
-  }
-});
-
-router.put('/update', auth, async (req, res) => {
-  const { name, email, phone, address, nic, password, profile } = req.body;
-
-  try {
-    // Find the user by ID    
-    let user = await User.findOne({ email });
-
-    if (!user) {
-      return res.status(404).json({ msg: 'User not found' });
-    }
-
-    // Check if email or nic is being updated and is unique
-    if (email && email !== user.email) {
-      let userEmail = await User.findOne({ email });
-      if (userEmail) {
-        return res.status(400).json({ msg: 'Email already exists' });
-      }
-    }
-
-    if (nic && nic !== user.nic) {
-      let userNic = await User.findOne({ nic });
-      if (userNic) {
-        return res.status(400).json({ msg: 'NIC already exists' });
-      }
-    }
-
-    // Update user fields
-    user.name = name || user.name;
-    user.email = email || user.email;
-    user.phone = phone || user.phone;
-    user.address = address || user.address;
-    user.nic = nic || user.nic;
-    user.profile = profile || user.profile;
-
-    // Hash password if it's being updated
-    if (password) {
-      const salt = await bcrypt.genSalt(10);
-      user.password = await bcrypt.hash(password, salt);
-    }
-
-    // Save the updated user
-    await user.save();
-
-    res.json({ msg: 'User updated successfully', user });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
-  }
-});
-
-router.delete('/delete', auth, async (req, res) => {
-  try {
-    // Use req.user.id to delete the authenticated user's account
-    await User.findByIdAndDelete(req.user.id);
-    res.json({ msg: 'User deleted' });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
