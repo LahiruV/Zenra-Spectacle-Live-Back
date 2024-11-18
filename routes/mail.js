@@ -3,7 +3,7 @@ const router = express.Router();
 const nodemailer = require('nodemailer');
 const auth = require('../middleware/auth'); // Optional, include if you require route protection
 
-router.post('/mail', auth, async (req, res) => {
+router.post('/mail', async (req, res) => {
     const { email, content, header } = req.body;
     try {
         // Create a Nodemailer transporter using your SMTP settings
